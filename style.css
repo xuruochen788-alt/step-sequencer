@@ -1,0 +1,78 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 40px;
+    background: #f5f5f5;
+}
+
+.container {
+    width: fit-content;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+#sequencer {
+    display: flex;
+    gap: 10px;
+}
+
+#note-labels {
+    display: grid;
+    grid-template-rows: repeat(8, 45px);
+    gap: 5px;
+    width: 40px;
+}
+
+.note-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#grid {
+    display: grid;
+    grid-template-columns: repeat(8, 45px);
+    grid-template-rows: repeat(8, 45px);
+    gap: 5px;
+}
+
+.cell {
+    width: 45px;
+    height: 45px;
+    border: 1px solid #aaa;
+    background: white;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.cell:hover {
+    border: 2px solid #555;
+}
+
+.cell.active {
+    background: steelblue;
+}
+
+.cell.current {
+    border: 3px solid black;
+}
+
+.cell.active.current {
+    background: steelblue;
+}
+
+.controls {
+    margin-top: 25px;
+    text-align: center;
+}
+
+button {
+    padding: 10px 25px;
+    margin: 0 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
