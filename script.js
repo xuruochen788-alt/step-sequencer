@@ -54,7 +54,7 @@ for (let row = 0; row < rows; row++) {
     }
 }
 
-const synth = new Tone.Synth().toDestination();
+const synth = new Tone.PolySynth(Tone.Synth).toDestination();
 
 let sequence;
 
