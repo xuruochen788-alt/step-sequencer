@@ -3,6 +3,10 @@
    General page layout
    ========================= */
 
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -28,84 +32,64 @@ h1 {
     margin-bottom: 25px;
 }
 
-
 /* =========================
    Sequencer layout
    ========================= */
 
 #sequencer {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: start;
     max-width: 100%;
 }
 
-/* Pitch labels */
+/* Drum track labels */
 
-#note-labels {
+#track-labels {
     display: grid;
-    grid-template-rows: repeat(8, 45px);
-    gap: 5px;
-
-    width: 50px;
+    grid-template-rows: repeat(3, 52px);
+    gap: 6px;
+    width: 105px;
     flex-shrink: 0;
 }
 
-.note-label {
+.track-label {
     display: flex;
     align-items: center;
-    justify-content: center;
-
+    justify-content: flex-start;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 14px;
 }
 
-
 /* =========================
-   16-step grid
+   Step grid
    ========================= */
 
 #grid {
     display: grid;
-
-    grid-template-columns: repeat(16, 45px);
-    grid-template-rows: repeat(8, 45px);
-
-    gap: 5px;
+    grid-template-columns: repeat(16, 42px);
+    grid-template-rows: repeat(3, 52px);
+    gap: 6px;
     width: max-content;
 }
-
 
 /* Individual cells */
 
 .cell {
-    width: 45px;
-    height: 45px;
-
+    width: 42px;
+    height: 52px;
     padding: 0;
-
     border: 2px solid #777;
-    border-radius: 0;
-
+    border-radius: 4px;
     background: white;
-    box-sizing: border-box;
-
     cursor: pointer;
 }
 
-/* Mouse hover */
+/* Hover and focus */
 
 .cell:hover {
     border-color: #222;
 }
-
-/* Note enabled */
-
-.cell.active {
-    background: steelblue;
-}
-
-/* Keyboard focus */
 
 .cell:focus {
     outline: 4px solid #ff9900;
@@ -113,18 +97,33 @@ h1 {
     z-index: 2;
 }
 
+/* Active drum hits */
+
+.cell.active {
+    border-color: #315f86;
+}
+
+.cell.active[data-row="0"] {
+    background: #4682b4;
+}
+
+.cell.active[data-row="1"] {
+    background: #d97757;
+}
+
+.cell.active[data-row="2"] {
+    background: #4b9b79;
+}
+
 /* Playback position */
 
 .cell.current {
-    border: 4px solid black;
+    border: 4px solid #222;
 }
-
-/* Note enabled and playing */
 
 .cell.active.current {
-    background: steelblue;
+    filter: brightness(0.9);
 }
-
 
 /* =========================
    Selection feedback
@@ -132,17 +131,14 @@ h1 {
 
 #selection-status {
     margin-top: 20px;
-
     font-size: 18px;
     font-weight: bold;
     line-height: 1.5;
-
     min-height: 28px;
 }
 
-
 /* =========================
-   Play and Stop
+   Play and Stop controls
    ========================= */
 
 .controls {
@@ -153,20 +149,82 @@ h1 {
 button {
     padding: 12px 25px;
     margin: 0 5px;
-
     font-size: 16px;
     font-weight: bold;
-
     cursor: pointer;
 }
-
-/* Focus on Play and Stop */
 
 button:focus-visible {
     outline: 4px solid #ff9900;
     outline-offset: 3px;
 }
 
+/* =========================
+   Settings panel
+   ========================= */
+
+#settings {
+    max-width: 600px;
+    margin: 35px auto 0;
+    padding: 24px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+#settings h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.setting-item {
+    display: grid;
+    grid-template-columns: 180px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.setting-item label {
+    font-weight: bold;
+}
+
+#step-count {
+    padding: 8px;
+    font-size: 16px;
+}
+
+.volume-settings {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+}
+
+.volume-settings legend {
+    font-weight: bold;
+    padding: 0 8px;
+}
+
+.volume-settings input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+.volume-settings output {
+    min-width: 48px;
+    text-align: right;
+    font-weight: bold;
+}
+
+/* Keyboard focus for settings */
+
+#settings input:focus-visible,
+#settings select:focus-visible {
+    outline: 4px solid #ff9900;
+    outline-offset: 3px;
+}
 
 /* =========================
    Responsive layout
@@ -182,5 +240,19 @@ button:focus-visible {
         overflow-x: auto;
         padding: 8px;
     }
+}
 
+@media (max-width: 600px) {
+
+    #settings {
+        padding: 16px;
+    }
+
+    .setting-item {
+        grid-template-columns: 1fr auto;
+    }
+
+    .setting-item label {
+        grid-column: 1 / -1;
+    }
 }

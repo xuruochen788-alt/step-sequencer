@@ -5,26 +5,27 @@
 // Configuration
 // =========================
 
-const rows = 8;
-const columns = 16;
+const rows = 3;
+const maxColumns = 16;
 
-const notes = [
-    "C5",
-    "B4",
-    "A4",
-    "G4",
-    "F4",
-    "E4",
-    "D4",
-    "C4"
+// Current number of visible steps.
+let columns = 16;
+
+const drumTracks = [
+    "Kick Drum",
+    "Snare Drum",
+    "Hi-Hat"
 ];
 
-// false = note off
-// true  = note on
+// false = drum hit off
+// true  = drum hit on
+//
+// Always store up to 16 steps.
+// Changing the visible step count does not erase hidden steps.
 
 const pattern = Array.from(
     { length: rows },
-    () => Array(columns).fill(false)
+    () => Array(maxColumns).fill(false)
 );
 
 
@@ -33,18 +34,33 @@ const pattern = Array.from(
 // =========================
 
 const gridElement = document.getElementById("grid");
-
-const noteLabelsElement =
-    document.getElementById("note-labels");
-
+const trackLabelsElement = document.getElementById("track-labels");
 const selectionStatusElement =
     document.getElementById("selection-status");
 
-const playButton =
-    document.getElementById("play");
+const playButton = document.getElementById("play");
+const stopButton = document.getElementById("stop");
 
-const stopButton =
-    document.getElementById("stop");
+const stepCountSelect =
+    document.getElementById("step-count");
+
+const kickVolumeSlider =
+    document.getElementById("kick-volume");
+
+const snareVolumeSlider =
+    document.getElementById("snare-volume");
+
+const hiHatVolumeSlider =
+    document.getElementById("hihat-volume");
+
+const kickVolumeValue =
+    document.getElementById("kick-volume-value");
+
+const snareVolumeValue =
+    document.getElementById("snare-volume-value");
+
+const hiHatVolumeValue =
+    document.getElementById("hihat-volume-value");
 
 
 // =========================
@@ -53,35 +69,221 @@ const stopButton =
 
 let selectedRow = 0;
 let selectedColumn = 0;
-
-
-// =========================
-// Audio
-// =========================
-
-// Main sequencer instrument
-const synth =
-    new Tone.PolySynth(Tone.Synth).toDestination();
-
-// Separate synth for keyboard pitch preview
-const previewSynth =
-    new Tone.Synth().toDestination();
-
-let sequence = null;
 let isPlaying = false;
 
 
 // =========================
-// Create pitch labels
+// Audio instruments
 // =========================
 
-notes.forEach(note => {
+// Kick: low bass-drum sound.
+
+const kick = new Tone.MembraneSynth({
+    pitchDecay: 0.05,
+    octaves: 6,
+    oscillator: {
+        type: "sine"
+    },
+    envelope: {
+        attack: 0.001,
+        decay: 0.35,
+        sustain: 0
+    }
+}).toDestination();
+
+
+// Snare: filtered white noise.
+
+const snareFilter = new Tone.Filter({
+    type: "highpass",
+    frequency: 1200,
+    rolloff: -12
+}).toDestination();
+
+const snare = new Tone.NoiseSynth({
+    noise: {
+        type: "white"
+    },
+    envelope: {
+        attack: 0.001,
+        decay: 0.18,
+        sustain: 0
+    }
+});
+
+snare.connect(snareFilter);
+
+
+// Hi-Hat: short white noise.
+
+const hiHat = new Tone.NoiseSynth({
+    noise: {
+        type: "white"
+    },
+    envelope: {
+        attack: 0.001,
+        decay: 0.25,
+        sustain: 0,
+        release: 0.05
+    },
+    volume: -12
+}).toDestination();
+
+
+// Store all instruments in one array.
+
+const drumInstruments = [
+    kick,
+    snare,
+    hiHat
+];
+
+
+// =========================
+// Track volume settings
+// =========================
+
+function updateTrackVolume(instrument, slider, output) {
+
+    const volume = Number(slider.value);
+
+    // Set instrument volume in decibels.
+    instrument.volume.value = volume;
+
+    // Display current volume.
+    output.textContent = `${volume} dB`;
+}
+
+
+// Initialize volume settings.
+
+updateTrackVolume(
+    kick,
+    kickVolumeSlider,
+    kickVolumeValue
+);
+
+updateTrackVolume(
+    snare,
+    snareVolumeSlider,
+    snareVolumeValue
+);
+
+updateTrackVolume(
+    hiHat,
+    hiHatVolumeSlider,
+    hiHatVolumeValue
+);
+
+
+// Listen for volume changes.
+
+kickVolumeSlider.addEventListener("input", () => {
+    updateTrackVolume(
+        kick,
+        kickVolumeSlider,
+        kickVolumeValue
+    );
+});
+
+snareVolumeSlider.addEventListener("input", () => {
+    updateTrackVolume(
+        snare,
+        snareVolumeSlider,
+        snareVolumeValue
+    );
+});
+
+hiHatVolumeSlider.addEventListener("input", () => {
+    updateTrackVolume(
+        hiHat,
+        hiHatVolumeSlider,
+        hiHatVolumeValue
+    );
+});
+
+
+// =========================
+// Play one drum sound
+// =========================
+
+function playDrum(
+    row,
+    time = undefined,
+    isActive = pattern[row][selectedColumn]
+) {
+
+    // Active steps sound louder than inactive steps.
+    const velocity = isActive ? 0.8 : 0.2;
+
+    switch (row) {
+
+        case 0:
+            kick.triggerAttackRelease(
+                "C1",
+                "8n",
+                time,
+                velocity
+            );
+            break;
+
+        case 1:
+            snare.triggerAttackRelease(
+                "16n",
+                time,
+                velocity
+            );
+            break;
+
+        case 2:
+            hiHat.triggerAttackRelease(
+                "16n",
+                time,
+                velocity
+            );
+            break;
+    }
+}
+
+
+// =========================
+// Preview selected drum
+// =========================
+
+async function previewDrum(row) {
+
+    try {
+
+        await Tone.start();
+
+        // Use the current cell's active state.
+        playDrum(
+            row,
+            undefined,
+            pattern[row][selectedColumn]
+        );
+
+    } catch (error) {
+
+        console.error("Drum preview failed:", error);
+
+    }
+}
+
+
+// =========================
+// Create drum track labels
+// =========================
+
+drumTracks.forEach(trackName => {
+
     const label = document.createElement("div");
 
-    label.classList.add("note-label");
-    label.textContent = note;
+    label.classList.add("track-label");
+    label.textContent = trackName;
 
-    noteLabelsElement.appendChild(label);
+    trackLabelsElement.appendChild(label);
+
 });
 
 
@@ -90,69 +292,92 @@ notes.forEach(note => {
 // =========================
 
 function updateCellLabel(cell, row, column) {
-    cell.setAttribute("aria-label", notes[row]);
+
+    const isActive = pattern[row][column];
+
+    cell.setAttribute(
+        "aria-label",
+        `${drumTracks[row]}, Step ${column + 1}`
+    );
 
     cell.setAttribute(
         "aria-pressed",
-        String(pattern[row][column])
+        String(isActive)
     );
 
     cell.classList.toggle(
         "active",
-        pattern[row][column]
+        isActive
     );
 }
 
 
 // =========================
-// Create 16 x 8 grid
+// Create dynamic drum grid
 // =========================
 
-for (let row = 0; row < rows; row++) {
+function createGrid() {
 
-    for (let column = 0; column < columns; column++) {
+    // Remove the previous grid.
+    gridElement.innerHTML = "";
 
-        const cell = document.createElement("button");
+    // Update the accessible grid description.
+    gridElement.setAttribute(
+        "aria-label",
+        `${columns}-step drum sequencer with Kick Drum, Snare Drum, and Hi-Hat tracks`
+    );
 
-        cell.type = "button";
-        cell.classList.add("cell");
+    // Update the number of grid columns.
+    gridElement.style.gridTemplateColumns =
+        `repeat(${columns}, 42px)`;
 
-        cell.dataset.row = row;
-        cell.dataset.column = column;
+    for (let row = 0; row < rows; row++) {
 
-        // Only the first cell is in the tab order
-        cell.tabIndex =
-            (row === 0 && column === 0) ? 0 : -1;
+        for (let column = 0; column < columns; column++) {
 
-        updateCellLabel(cell, row, column);
+            const cell = document.createElement("button");
 
+            cell.type = "button";
+            cell.classList.add("cell");
 
-        // Mouse interaction
-        cell.addEventListener("click", async () => {
+            cell.dataset.row = row;
+            cell.dataset.column = column;
 
-            await Tone.start();
+            // Only the selected cell is in the Tab order.
+            cell.tabIndex =
+                (row === selectedRow &&
+                 column === selectedColumn) ? 0 : -1;
 
-            selectedRow = row;
-            selectedColumn = column;
+            updateCellLabel(
+                cell,
+                row,
+                column
+            );
 
-            updateSelection();
+            // Mouse or touch interaction.
+            cell.addEventListener("click", async () => {
 
-            toggleNote(row, column);
+                await Tone.start();
 
-        });
+                selectedRow = row;
+                selectedColumn = column;
 
+                updateSelection();
 
-        // Keyboard interaction
-        cell.addEventListener(
-            "keydown",
-            handleKeydown
-        );
+                toggleDrum(row, column);
 
+            });
 
-        gridElement.appendChild(cell);
+            // Keyboard interaction.
+            cell.addEventListener(
+                "keydown",
+                handleKeydown
+            );
 
+            gridElement.appendChild(cell);
+
+        }
     }
-
 }
 
 
@@ -187,7 +412,7 @@ function updateSelection() {
             row === selectedRow &&
             column === selectedColumn;
 
-        // Only current cell is tabbable
+        // Roving tabindex.
         cell.tabIndex = isSelected ? 0 : -1;
 
         cell.classList.toggle(
@@ -208,71 +433,47 @@ function announceStep() {
 
     if (!selectionStatusElement) return;
 
-    // Clear first so repeated updates can be announced
-    selectionStatusElement.textContent = "";
-
-    requestAnimationFrame(() => {
-
-        selectionStatusElement.textContent =
-            `Step ${selectedColumn + 1}`;
-
-    });
+    // Announce only the current step number.
+    selectionStatusElement.textContent =
+        `Step ${selectedColumn + 1}`;
 
 }
 
 
 // =========================
-// Preview a pitch
+// Toggle a drum hit
 // =========================
 
-async function previewNote(row) {
+function toggleDrum(row, column) {
 
-    try {
-
-        await Tone.start();
-
-        previewSynth.triggerAttackRelease(
-            notes[row],
-            "16n"
-        );
-
-    } catch (error) {
-
-        console.error(
-            "Pitch preview failed:",
-            error
-        );
-
-    }
-
-}
-
-
-// =========================
-// Toggle a note
-// =========================
-
-function toggleNote(row, column) {
-
+    // Change the current cell state.
     pattern[row][column] =
         !pattern[row][column];
 
     const cell = getCell(row, column);
 
-    updateCellLabel(cell, row, column);
+    updateCellLabel(
+        cell,
+        row,
+        column
+    );
 
-    // Announce only On or Off
-    const state = pattern[row][column]
-        ? "On"
-        : "Off";
+    const state =
+        pattern[row][column] ? "On" : "Off";
 
+    // Announce the changed state.
     if (selectionStatusElement) {
-        selectionStatusElement.textContent = state;
+
+        selectionStatusElement.textContent =
+            `${drumTracks[row]}, Step ${column + 1}, ${state}`;
+
     }
 
-    // Preview pitch when turning note on
+    // Preview the drum only when turning a hit on.
     if (pattern[row][column]) {
-        previewNote(row);
+
+        previewDrum(row);
+
     }
 
 }
@@ -282,8 +483,8 @@ function toggleNote(row, column) {
 // Keyboard navigation
 // =========================
 
-
 async function handleKeydown(event) {
+
     const cell = event.target.closest(".cell");
 
     if (!cell) return;
@@ -294,30 +495,64 @@ async function handleKeydown(event) {
     let horizontalMove = false;
 
     switch (event.key) {
+
         case "ArrowLeft":
+
             event.preventDefault();
-            column = Math.max(0, column - 1);
+
+            column = Math.max(
+                0,
+                column - 1
+            );
+
             horizontalMove = true;
+
             break;
+
 
         case "ArrowRight":
+
             event.preventDefault();
-            column = Math.min(columns - 1, column + 1);
+
+            column = Math.min(
+                columns - 1,
+                column + 1
+            );
+
             horizontalMove = true;
+
             break;
+
 
         case "ArrowUp":
+
             event.preventDefault();
-            row = Math.max(0, row - 1);
+
+            row = Math.max(
+                0,
+                row - 1
+            );
+
             break;
+
 
         case "ArrowDown":
+
             event.preventDefault();
-            row = Math.min(rows - 1, row + 1);
+
+            row = Math.min(
+                rows - 1,
+                row + 1
+            );
+
             break;
 
+
         default:
+
+            // Enter and Space use the native button behavior.
             return;
+
     }
 
     selectedRow = row;
@@ -326,55 +561,75 @@ async function handleKeydown(event) {
     updateSelection();
 
     const destination = getCell(row, column);
+
     destination.focus();
 
-    // 左右移动：更新 Step
+    // Only announce when moving horizontally.
     if (horizontalMove) {
+
         announceStep();
+
     }
 
-    // 所有方向移动：试听音高
-    await previewNote(row);
-}
+    // Preview the selected drum.
+    // The volume depends on whether the cell is active.
+    await previewDrum(row);
 
+}
 
 
 // =========================
 // Playback sequence
 // =========================
 
-sequence = new Tone.Sequence(
+let sequence = null;
 
-    (time, column) => {
+function createSequence() {
 
-        for (let row = 0; row < rows; row++) {
+    // Dispose of the previous sequence.
+    if (sequence) {
 
-            if (pattern[row][column]) {
+        sequence.stop();
+        sequence.dispose();
 
-                synth.triggerAttackRelease(
-                    notes[row],
-                    "16n",
-                    time
-                );
+    }
+
+    sequence = new Tone.Sequence(
+
+        (time, column) => {
+
+            for (let row = 0; row < rows; row++) {
+
+                if (pattern[row][column]) {
+
+                    // Active steps use normal playback volume.
+                    playDrum(row, time, true);
+
+                }
 
             }
 
-        }
+            // Update visual playhead in sync with audio.
+            Tone.Draw.schedule(() => {
 
-        updateCurrentColumn(column);
+                updateCurrentColumn(column);
 
-    },
+            }, time);
 
-    Array.from(
-        { length: columns },
-        (_, index) => index
-    ),
+        },
 
-    "16n"
+        Array.from(
+            { length: columns },
+            (_, index) => index
+        ),
 
-);
+        "16n"
 
-sequence.loop = true;
+    );
+
+    sequence.loop = true;
+
+}
 
 
 // =========================
@@ -383,19 +638,33 @@ sequence.loop = true;
 
 async function play() {
 
-    await Tone.start();
+    try {
 
-    if (isPlaying) return;
+        await Tone.start();
 
-    isPlaying = true;
+        if (isPlaying) return;
 
-    sequence.start(0);
+        isPlaying = true;
 
-    Tone.Transport.start();
+        Tone.Transport.bpm.value = 110;
 
-    if (selectionStatusElement) {
-        selectionStatusElement.textContent =
-            "Playback started";
+        sequence.start(0);
+
+        Tone.Transport.start();
+
+        if (selectionStatusElement) {
+
+            selectionStatusElement.textContent =
+                "Playback started";
+
+        }
+
+    } catch (error) {
+
+        console.error("Playback failed:", error);
+
+        isPlaying = false;
+
     }
 
 }
@@ -407,38 +676,29 @@ async function play() {
 
 function stop() {
 
-    if (!isPlaying) return;
+    if (isPlaying) {
 
-    isPlaying = false;
+        isPlaying = false;
 
-    Tone.Transport.stop();
-    Tone.Transport.cancel();
+        Tone.Transport.stop();
+        Tone.Transport.cancel();
 
-    sequence.stop();
+        if (sequence) {
+            sequence.stop();
+        }
+
+        if (selectionStatusElement) {
+
+            selectionStatusElement.textContent =
+                "Playback stopped";
+
+        }
+
+    }
 
     updateCurrentColumn(-1);
 
-    if (selectionStatusElement) {
-        selectionStatusElement.textContent =
-            "Playback stopped";
-    }
-
 }
-
-
-// =========================
-// Button events
-// =========================
-
-playButton.addEventListener(
-    "click",
-    play
-);
-
-stopButton.addEventListener(
-    "click",
-    stop
-);
 
 
 // =========================
@@ -463,7 +723,70 @@ function updateCurrentColumn(column) {
 
 
 // =========================
+// Step count settings
+// =========================
+
+stepCountSelect.addEventListener("change", () => {
+
+    const newColumns =
+        Number(stepCountSelect.value);
+
+    // Only allow 4, 8, or 16 steps.
+    if (![4, 8, 16].includes(newColumns)) {
+        return;
+    }
+
+    // Stop current playback before rebuilding.
+    stop();
+
+    // Update the visible step count.
+    columns = newColumns;
+
+    // Keep selection inside the new grid.
+    selectedColumn = Math.min(
+        selectedColumn,
+        columns - 1
+    );
+
+    // Rebuild the grid and sequence.
+    createGrid();
+
+    createSequence();
+
+    updateSelection();
+
+    updateCurrentColumn(-1);
+
+    // Announce the new setting.
+    if (selectionStatusElement) {
+
+        selectionStatusElement.textContent =
+            `${columns} steps selected`;
+
+    }
+
+});
+
+
+// =========================
+// Button events
+// =========================
+
+playButton.addEventListener("click", play);
+
+stopButton.addEventListener("click", stop);
+
+
+// =========================
 // Initialize
 // =========================
 
+// Create the initial 16-step grid.
+createGrid();
+
+// Create the initial playback sequence.
+createSequence();
+
+// Set the initial keyboard selection.
 updateSelection();
+

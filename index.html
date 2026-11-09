@@ -4,55 +4,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Accessible Step Sequencer</title>
-
+    <title>Accessible Drum Step Sequencer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
+    <main class="container">
 
-<div class="container">
+        <h1>Drum Step Sequencer</h1>
 
-    <h1>Step Sequencer</h1>
+        <p id="instructions">
+            Use the arrow keys to move between drum tracks and steps.
+            Moving left or right announces the current step number.
+            Moving up or down changes the selected drum track and previews its sound.
+            Press Enter or Space to toggle a drum hit.
+            Louder preview sounds indicate active steps.
+            Use Tab to leave the sequencer.
+        </p>
 
-    <p id="instructions">
-        Use the arrow keys to move between notes.
-        Moving left or right announces the step number
-        and previews the pitch.
-        Moving up or down previews the pitch only.
-        Press Enter or Space to toggle a note.
-        Use Tab to leave the sequencer.
-    </p>
+        <!-- Drum sequencer -->
+        <section id="sequencer" aria-label="Drum sequencer">
 
-    <div id="sequencer">
+            <div id="track-labels" aria-hidden="true"></div>
 
-        <div id="note-labels" aria-hidden="true"></div>
+            <div
+                id="grid"
+                role="group"
+                aria-label="16-step drum sequencer with Kick Drum, Snare Drum, and Hi-Hat tracks">
+            </div>
 
-        <div
-            id="grid"
-            role="group"
-            aria-label="16-step note sequencer">
+        </section>
+
+        <!-- Screen reader status -->
+        <p
+            id="selection-status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true">
+        </p>
+
+        <!-- Playback controls -->
+        <div class="controls">
+            <button id="play" type="button">Play</button>
+            <button id="stop" type="button">Stop</button>
         </div>
 
-    </div>
+        <!-- Settings -->
+        <section id="settings" aria-labelledby="settings-title">
 
-    <p
-    id="selection-status"
-    role="status"
-    aria-live="polite"
-    aria-atomic="true">
-    </p>
+            <h2 id="settings-title">Settings</h2>
 
-    <div class="controls">
-        <button id="play" type="button">Play</button>
-        <button id="stop" type="button">Stop</button>
-    </div>
+            <!-- Step count -->
+            <div class="setting-item">
+                <label for="step-count">Number of Steps</label>
 
-</div>
+                <select id="step-count">
+                    <option value="4">4 Steps</option>
+                    <option value="8">8 Steps</option>
+                    <option value="16" selected>16 Steps</option>
+                </select>
+            </div>
 
-<script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
-<script src="script.js"></script>
+            <!-- Track volumes -->
+            <fieldset class="volume-settings">
+
+                <legend>Track Volume</legend>
+
+                <div class="setting-item">
+                    <label for="kick-volume">
+                        Kick Drum Volume
+                    </label>
+
+                    <input
+                        type="range"
+                        id="kick-volume"
+                        min="-30"
+                        max="6"
+                        value="0"
+                        step="1">
+
+                    <output
+                        id="kick-volume-value"
+                        for="kick-volume">
+                        0 dB
+                    </output>
+                </div>
+
+                <div class="setting-item">
+                    <label for="snare-volume">
+                        Snare Drum Volume
+                    </label>
+
+                    <input
+                        type="range"
+                        id="snare-volume"
+                        min="-30"
+                        max="6"
+                        value="-3"
+                        step="1">
+
+                    <output
+                        id="snare-volume-value"
+                        for="snare-volume">
+                        -3 dB
+                    </output>
+                </div>
+
+                <div class="setting-item">
+                    <label for="hihat-volume">
+                        Hi-Hat Volume
+                    </label>
+
+                    <input
+                        type="range"
+                        id="hihat-volume"
+                        min="-30"
+                        max="6"
+                        value="-12"
+                        step="1">
+
+                    <output
+                        id="hihat-volume-value"
+                        for="hihat-volume">
+                        -12 dB
+                    </output>
+                </div>
+
+            </fieldset>
+
+        </section>
+
+    </main>
+
+    <!-- Tone.js -->
+    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+
+    <!-- Main JavaScript -->
+    <script src="script.js"></script>
 
 </body>
 </html>
